@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <a href="{% url 'signin' %}">Sign In</a>
+    <a href="{% url 'chat' %}">Chat</a>
+  </div>
+
+  <!-- Sign Up Form -->
+  <div class="auth-container">
+    <div class="auth-box">
+      <h2>Sign Up</h2>
+      <form method="POST" action="">
+        {% csrf_token %}
+        
+        <!-- If using Django form (recommended) -->
+        {{ form.non_field_errors }}
+        <div>
+          {{ form.full_name.errors }}
+          {{ form.full_name }}
+        </div>
+        <div>
+          {{ form.email.errors }}
+          {{ form.email }}
+        </div>
+        <div>
+          {{ form.password.errors }}
+          {{ form.password }}
+        </div>
+
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

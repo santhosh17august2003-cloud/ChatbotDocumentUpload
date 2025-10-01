@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatGPT Clone</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f5f5f5; color: #333; height: 100vh; display: flex; flex-direction: column; }
+    .navbar { background-color: #202123; color: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; flex-wrap: wrap; }
+    .navbar a { color: white; text-decoration: none; margin-left: 20px; font-size: 15px; transition: color 0.3s ease; }
+    .navbar a:hover { color: #10a37f; }
+    .main-layout { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 250px; background-color: #2d2d2f; color: white; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar h2 { margin-bottom: 20px; font-size: 18px; }
+    .sidebar button { background: #3e3f42; color: white; border: none; padding: 12px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: background 0.3s ease; text-align: left; }
+    .sidebar button:hover { background: #10a37f; }
+    .chat-container { flex: 1; display: flex; flex-direction: column; background: #ffffff; min-width: 0; }
+    .chat-box { flex: 1; padding: 20px; overflow-y: auto; }
+    .message { display: flex; margin-bottom: 15px; }
+    .message.bot .bubble { background: #e8e8ed; align-self: flex-start; }
+    .message.user { justify-content: flex-end; }
+    .message.user .bubble { background: #10a37f; color: white; align-self: flex-end; }
+    .bubble { padding: 12px 16px; border-radius: 12px; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
+    .input-area { display: flex; padding: 10px 15px; background: #f0f0f0; border-top: 1px solid #ddd; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+    .input-wrapper input[type="text"] { width: 100%; padding: 12px 12px 12px 40px; border-radius: 8px; border: 1px solid #ccc; outline: none; min-width: 0; }
+    #uploadLabel { position: absolute; left: 10px; font-size: 18px; cursor: pointer; color: #10a37f; }
+    #uploadLabel:hover { color: #0d8c6a; }
+    input[type="file"] { display: none; }
+    .input-area button { padding: 12px 20px; border: none; border-radius: 8px; background: #10a37f; color: white; cursor: pointer; transition: background 0.3s ease; flex-shrink: 0; }
+    .input-area button:hover { background: #0d8c6a; }
+    @media (max-width: 992px) { .sidebar { width: 200px; } }
+    @media (max-width: 768px) { .sidebar { display: none; } .bubble { max-width: 90%; } }
+    @media (max-width: 480px) { .navbar { flex-direction: column; align-items: flex-start; } .navbar a { margin: 5px 0; font-size: 14px; } .input-area { flex-direction: column; } .input-wrapper input[type="text"], .input-area button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="logo">ChatGPT Clone</div>
+    <div>
+      <a href="{% url 'profile' %}">Profile</a>
+      <a href="{% url 'signout' %}">Signout</a>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="sidebar" id="sidebar">
+      <h2>Menu</h2>
+      <button>New Chat</button>
+      <button>History 1</button>
+      <button>History 2</button>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-box" id="chatBox"></div>
+
+      <div class="input-area">
+        <div class="input-wrapper">
+          <label for="fileInput" id="uploadLabel">+</label>
+          <input type="text" id="messageInput" placeholder="Type your message...">
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,image/png,image/jpeg,image/jpg">
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+  <script>
+const chatBox = document.getElementById("chatBox");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const fileInput = document.getElementById("fileInput");
+
+let uploadedFile = null;
+
+// Detect file selection
+fileInput.addEventListener("change", (e) => {
+  uploadedFile = e.target.files[0];
+  if (uploadedFile) {
+    alert("File ready: " + uploadedFile.name);
+  }
+});
+
+// Send on button click or Enter
+sendBtn.addEventListener("click", sendMessage);
+messageInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // prevent newline
+    sendMessage();
+  }
+});
+
+async function sendMessage() {
+  const message = messageInput.value.trim();
+  if (!message && !uploadedFile) return;
+
+  // Display user message immediately
+  if (message) addMessage("user", message);
+
+  // Clear the text input immediately
+  messageInput.value = "";
+
+  const formData = new FormData();
+  formData.append("message", message);
+  if (uploadedFile) formData.append("doc_file", uploadedFile);
+
+  try {
+    const res = await fetch("/getvalue/", {
+      method: "POST",
+      headers: { "X-CSRFToken": getCookie("csrftoken") },
+      body: formData
+    });
+    const data = await res.json();
+    if (data.reply) addMessage("bot", data.reply);
+  } catch (err) {
+    addMessage("bot", "Error: Could not get response.");
+  }
+
+  // Reset file input
+  uploadedFile = null;
+  fileInput.value = "";
+}
+
+function addMessage(sender, text) {
+  const div = document.createElement("div");
+  div.className = "message " + sender;
+  div.innerHTML = `<div class="bubble">${text}</div>`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+</body>
+</html>
