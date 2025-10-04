@@ -2,148 +2,272 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChatGPT Clone</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #f5f5f5; color: #333; height: 100vh; display: flex; flex-direction: column; }
-    .navbar { background-color: #202123; color: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; flex-wrap: wrap; }
-    .navbar a { color: white; text-decoration: none; margin-left: 20px; font-size: 15px; transition: color 0.3s ease; }
-    .navbar a:hover { color: #10a37f; }
-    .main-layout { display: flex; flex: 1; overflow: hidden; }
-    .sidebar { width: 250px; background-color: #2d2d2f; color: white; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
-    .sidebar h2 { margin-bottom: 20px; font-size: 18px; }
-    .sidebar button { background: #3e3f42; color: white; border: none; padding: 12px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: background 0.3s ease; text-align: left; }
-    .sidebar button:hover { background: #10a37f; }
-    .chat-container { flex: 1; display: flex; flex-direction: column; background: #ffffff; min-width: 0; }
-    .chat-box { flex: 1; padding: 20px; overflow-y: auto; }
-    .message { display: flex; margin-bottom: 15px; }
-    .message.bot .bubble { background: #e8e8ed; align-self: flex-start; }
-    .message.user { justify-content: flex-end; }
-    .message.user .bubble { background: #10a37f; color: white; align-self: flex-end; }
-    .bubble { padding: 12px 16px; border-radius: 12px; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
-    .input-area { display: flex; padding: 10px 15px; background: #f0f0f0; border-top: 1px solid #ddd; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
-    .input-wrapper input[type="text"] { width: 100%; padding: 12px 12px 12px 40px; border-radius: 8px; border: 1px solid #ccc; outline: none; min-width: 0; }
-    #uploadLabel { position: absolute; left: 10px; font-size: 18px; cursor: pointer; color: #10a37f; }
-    #uploadLabel:hover { color: #0d8c6a; }
-    input[type="file"] { display: none; }
-    .input-area button { padding: 12px 20px; border: none; border-radius: 8px; background: #10a37f; color: white; cursor: pointer; transition: background 0.3s ease; flex-shrink: 0; }
-    .input-area button:hover { background: #0d8c6a; }
-    @media (max-width: 992px) { .sidebar { width: 200px; } }
-    @media (max-width: 768px) { .sidebar { display: none; } .bubble { max-width: 90%; } }
-    @media (max-width: 480px) { .navbar { flex-direction: column; align-items: flex-start; } .navbar a { margin: 5px 0; font-size: 14px; } .input-area { flex-direction: column; } .input-wrapper input[type="text"], .input-area button { width: 100%; } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Clone</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f5f5f5; color: #333; height: 100vh; display: flex; flex-direction: column; }
+        .navbar { background-color: #202123; color: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; flex-wrap: wrap; }
+        .navbar a { color: white; text-decoration: none; margin-left: 20px; font-size: 15px; transition: color 0.3s ease; }
+        .navbar a:hover { color: #10a37f; }
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 250px; background-color: #2d2d2f; color: white; padding: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar h2 { margin-bottom: 20px; font-size: 18px; }
+        .sidebar button { background: #3e3f42; color: white; border: none; padding: 12px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: background 0.3s ease; text-align: left; }
+        .sidebar button:hover { background: #10a37f; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: #ffffff; min-width: 0; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; }
+        .message { display: flex; margin-bottom: 15px; }
+        .message.bot .bubble { background: #e8e8ed; align-self: flex-start; }
+        .message.user { justify-content: flex-end; }
+        .message.user .bubble { background: #10a37f; color: white; align-self: flex-end; }
+        .message.document .bubble { background: #ffe4b5; color: #333; }
+        .bubble { padding: 12px 16px; border-radius: 12px; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
+        .input-area { display: flex; padding: 10px 15px; background: #f0f0f0; border-top: 1px solid #ddd; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        .input-wrapper input[type="text"] { width: 100%; padding: 12px 12px 12px 40px; border-radius: 8px; border: 1px solid #ccc; outline: none; min-width: 0; }
+        #uploadLabel { position: absolute; left: 10px; font-size: 18px; cursor: pointer; color: #10a37f; }
+        #uploadLabel:hover { color: #0d8c6a; }
+        input[type="file"] { display: none; }
+        .input-area button { padding: 12px 20px; border: none; border-radius: 8px; background: #10a37f; color: white; cursor: pointer; transition: background 0.3s ease; flex-shrink: 0; }
+        .input-area button:hover { background: #0d8c6a; }
+        @media (max-width: 992px) { .sidebar { width: 200px; } }
+        @media (max-width: 768px) { .sidebar { display: none; } .bubble { max-width: 90%; } }
+        @media (max-width: 480px) { .navbar { flex-direction: column; align-items: flex-start; } .navbar a { margin: 5px 0; font-size: 14px; } .input-area { flex-direction: column; } .input-wrapper input[type="text"], .input-area button { width: 100%; } }
+    </style>
 </head>
 <body>
-  <div class="navbar">
-    <div class="logo">ChatGPT Clone</div>
-    <div>
-      <a href="{% url 'profile' %}">Profile</a>
-      <a href="{% url 'signout' %}">Signout</a>
-    </div>
-  </div>
-
-  <div class="main-layout">
-    <div class="sidebar" id="sidebar">
-      <h2>Menu</h2>
-      <button>New Chat</button>
-      <button>History 1</button>
-      <button>History 2</button>
-    </div>
-
-    <div class="chat-container">
-      <div class="chat-box" id="chatBox"></div>
-
-      <div class="input-area">
-        <div class="input-wrapper">
-          <label for="fileInput" id="uploadLabel">+</label>
-          <input type="text" id="messageInput" placeholder="Type your message...">
+    <div class="navbar">
+        <div class="logo"> Santhosh ChatGPT </div>
+        <div>
+            <span style="margin-right:20px; font-size:15px; color:white;">
+                Welcome, {{ request.user.get_full_name }}
+            </span>
+            <a href="{% url 'signout' %}">Signout</a>
         </div>
-        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,image/png,image/jpeg,image/jpg">
-        <button id="sendBtn">Send</button>
-      </div>
     </div>
-  </div>
-  <script>
+
+    <div class="main-layout">
+        <div class="sidebar" id="sidebar">
+            <h2>Sessions</h2>
+            <form method="POST" action="{% url 'chat' %}">
+                {% csrf_token %}
+                <button type="submit">New Chat</button>
+            </form>
+            <div id="sessionList">
+            {% for session in sessions %}
+                
+                <div class="session-wrapper" data-session-name="{{ session }}" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <button class="load-session" data-session="{{ session }}" style="flex:1;">{{ session }}</button>
+                    <button class="delete-session" data-session="{{ session }}" style="background:red; padding:5px 8px; border-radius:5px;">X</button>
+                </div>
+            {% empty %}
+                <p>No sessions yet.</p>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-box" id="chatBox">
+                {% for c in chats %}
+                    <div class="message {{ c.sender }}">
+                        <div class="bubble">{{ c.message }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <label for="fileInput" id="uploadLabel">+</label>
+                    <input type="text" id="messageInput" placeholder="Type your message...">
+                </div>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt,image/png,image/jpeg,image/jpg">
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+<script>
 const chatBox = document.getElementById("chatBox");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const fileInput = document.getElementById("fileInput");
+const sessionList = document.getElementById("sessionList");
 
 let uploadedFile = null;
+let currentSession = "{{ session_name }}";
+let isFirstMessage = "{{ session_name }}".startsWith("Chat "); // Helper flag
 
-// Detect file selection
+// ---------- File Upload ----------
 fileInput.addEventListener("change", (e) => {
-  uploadedFile = e.target.files[0];
-  if (uploadedFile) {
-    alert("File ready: " + uploadedFile.name);
-  }
+    uploadedFile = e.target.files[0];
+    if (uploadedFile) alert("File ready: " + uploadedFile.name);
 });
 
-// Send on button click or Enter
+// ---------- Send Message ----------
 sendBtn.addEventListener("click", sendMessage);
 messageInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault(); // prevent newline
-    sendMessage();
-  }
+    if (e.key === "Enter") { e.preventDefault(); sendMessage(); }
 });
 
 async function sendMessage() {
-  const message = messageInput.value.trim();
-  if (!message && !uploadedFile) return;
+    const message = messageInput.value.trim();
+    if (!message && !uploadedFile) return;
 
-  // Display user message immediately
-  if (message) addMessage("user", message);
+    // Store the old session name before clearing input (in case it's a placeholder like 'Chat 1')
+    const oldSessionName = currentSession; 
+    
+    if (message) addMessage("user", message);
+    messageInput.value = "";
 
-  // Clear the text input immediately
-  messageInput.value = "";
+    const formData = new FormData();
+    formData.append("message", message);
+    if (uploadedFile) formData.append("doc_file", uploadedFile);
 
-  const formData = new FormData();
-  formData.append("message", message);
-  if (uploadedFile) formData.append("doc_file", uploadedFile);
+    try {
+        const res = await fetch("{% url 'getvalue' %}", { // Using the named URL
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            body: formData
+        });
+        const data = await res.json();
+        
+        if (data.reply) addMessage("bot", data.reply);
 
-  try {
-    const res = await fetch("/getvalue/", {
-      method: "POST",
-      headers: { "X-CSRFToken": getCookie("csrftoken") },
-      body: formData
-    });
-    const data = await res.json();
-    if (data.reply) addMessage("bot", data.reply);
-  } catch (err) {
-    addMessage("bot", "Error: Could not get response.");
-  }
+        // 💡 CRITICAL FIX: Update the sidebar if the session name changed
+        if (data.session_name && data.session_name !== oldSessionName) {
+            
+            // 1. Find and update the corresponding button/wrapper in the sidebar
+            const oldWrapper = document.querySelector(`.session-wrapper[data-session-name="${oldSessionName}"]`);
+            
+            if (oldWrapper) {
+                // Remove the old wrapper
+                oldWrapper.remove();
+            }
 
-  // Reset file input
-  uploadedFile = null;
-  fileInput.value = "";
-}
+            // 2. Create the new session wrapper with the new name
+            const newWrapper = document.createElement("div");
+            newWrapper.className = "session-wrapper";
+            newWrapper.dataset.sessionName = data.session_name;
+            newWrapper.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;";
 
-function addMessage(sender, text) {
-  const div = document.createElement("div");
-  div.className = "message " + sender;
-  div.innerHTML = `<div class="bubble">${text}</div>`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
+            newWrapper.innerHTML = `
+                <button class="load-session" data-session="${data.session_name}" style="flex:1;">${data.session_name}</button>
+                <button class="delete-session" data-session="${data.session_name}" style="background:red; padding:5px 8px; border-radius:5px;">X</button>
+            `;
+            
+            // 3. Insert the new session at the top of the list (optional, but logical)
+            // Or append it if the list is empty
+            if (sessionList.firstChild && sessionList.firstChild.nodeName === 'P') {
+                sessionList.innerHTML = ''; // Clear "No sessions yet."
+                sessionList.appendChild(newWrapper);
+            } else if (sessionList.firstChild) {
+                sessionList.insertBefore(newWrapper, sessionList.firstChild);
+            } else {
+                 sessionList.appendChild(newWrapper);
+            }
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
+            // 4. Update the current session tracker
+            currentSession = data.session_name;
+        }
+
+    } catch (err) {
+        addMessage("bot", "Error: Could not get response.");
     }
-  }
-  return cookieValue;
+
+    uploadedFile = null;
+    fileInput.value = "";
+    // Scroll to bottom after processing
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// ---------- Add Message to Chat Box ----------
+function addMessage(sender, text) {
+    const div = document.createElement("div");
+    div.className = "message " + sender;
+    // Basic Markdown support for bot messages (optional but nice)
+    const formattedText = sender === 'bot' ? text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>') : text; 
+    div.innerHTML = `<div class="bubble">${formattedText}</div>`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// ---------- Load/Delete Session Handlers ----------
+sessionList.addEventListener("click", async (e) => {
+    // --- Load Session ---
+    if (e.target.classList.contains("load-session")) {
+        const session = e.target.dataset.session.trim();
+        if (!session) return;
+
+        currentSession = session;
+        chatBox.innerHTML = "";
+        try {
+            const res = await fetch(`/load_session/${session}/`);
+            const data = await res.json();
+            for (let msg of data.chats) addMessage(msg.sender, msg.message);
+        } catch(err) { addMessage("bot", "Error loading session."); }
+    }
+
+    // --- Delete Session ---
+    if (e.target.classList.contains("delete-session")) {
+        const sessionName = e.target.dataset.session.trim();
+        if (!sessionName) return;
+
+        if (!confirm(`Are you sure you want to delete session "${sessionName}"?`)) return;
+
+        fetch("{% url 'ajax_delete_session' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ session_name: sessionName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.deleted) {
+                alert(`Session "${data.session_name}" deleted successfully!`);
+                
+                // Remove the wrapper element from the DOM
+                e.target.closest('.session-wrapper').remove(); 
+                
+                if (currentSession === sessionName) {
+                    chatBox.innerHTML = "";
+                    // Redirect to the default chat view after deletion (best practice)
+                    window.location.href = "{% url 'chat' %}";
+                }
+                
+                // Re-add "No sessions yet." if the list is now empty
+                if (sessionList.children.length === 0) {
+                     sessionList.innerHTML = '<p>No sessions yet.</p>';
+                }
+
+            } else {
+                alert("Error deleting session: " + (data.error || "Unknown error"));
+            }
+        });
+    }
+});
+
+// Scroll to bottom when the page loads
+chatBox.scrollTop = chatBox.scrollHeight;
+
+// ---------- CSRF Helper ----------
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 </script>
 </body>
