@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv 
+from dotenv import load_dotenv  # type: ignore
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,7 +33,7 @@ CSRF_TRUSTED_ORIGINS = ["https://santhoshdocgbt.onrender.com"]
 CORS_ORIGINS_WHITELIST = ["https://santhoshdocgbt.onrender.com"]
 
 
-# Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
