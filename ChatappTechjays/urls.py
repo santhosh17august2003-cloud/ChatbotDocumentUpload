@@ -1,4 +1,5 @@
 from django.urls import path
+
 from ChatappTechjays import views
 
 urlpatterns = [

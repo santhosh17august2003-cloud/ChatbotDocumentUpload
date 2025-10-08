@@ -1,20 +1,24 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+import json
+import os
+import tempfile
+
+import fitz  # PyMuPDF for PDF fallback
+import google.generativeai as genai
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .forms import SignupForm, SignInForm
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
-import json, os, tempfile, fitz  # PyMuPDF for PDF fallback
+from google.genai.errors import APIError
+from langchain.document_loaders import (UnstructuredHTMLLoader,
+                                        UnstructuredPDFLoader,
+                                        UnstructuredWordDocumentLoader)
+
+from .forms import SignInForm, SignupForm
 from .models import Chat
-import google.generativeai as genai
-from google.genai.errors import APIError  # type: ignore
-from langchain.document_loaders import (
-    UnstructuredWordDocumentLoader,
-    UnstructuredPDFLoader,
-    UnstructuredHTMLLoader
-)  # type: ignore
+# This file handles user views for the chat app
 
 # ---------------- GEMINI CONFIG ---------------- #
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -33,9 +37,10 @@ def rename_session(user, old_session_name, first_user_message):
             return old_session_name
 
         prompt = (
-            f"Provide a short descriptive chat title (max 5 words, no quotes):\n"
-            f"{first_user_message}"
-        )
+    f"Provide a short descriptive chat title (max 5 words, no quotes):\n"
+    f"{first_user_message}"
+)
+
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(
             prompt,
@@ -66,6 +71,7 @@ def rename_session(user, old_session_name, first_user_message):
 
 
 # ---------------- AUTH ---------------- #
+"""Handle user signup form submission and user creation."""
 def signup(request):
     if request.method == "POST":
         form = SignupForm(request.POST)
@@ -173,6 +179,7 @@ def get_gemini_response(prompt):
 
 
 # ---------------- FILE UPLOAD + MESSAGE ---------------- #
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
 @csrf_exempt
 @login_required
 def getvalue(request):
@@ -186,10 +193,12 @@ def getvalue(request):
         message = request.POST.get("message", "").strip()
         uploaded_file = request.FILES.get("doc_file")
     else:
+        import json
+
         try:
             data = json.loads(request.body)
             message = data.get("message", "").strip()
-        except:
+        except json.JSONDecodeError:
             return JsonResponse({"reply": "Invalid JSON"})
 
     if not message and not uploaded_file:
@@ -296,6 +305,10 @@ def ajax_delete_session(request):
             if request.session.get('current_session') == session_name:
                 request.session['current_session'] = None
             return JsonResponse({"deleted": True})
-        except Exception as e:
-            return JsonResponse({"deleted": False, "error": str(e)}, status=500)
+        except Exception as _:
+            return JsonResponse(
+    {"error": "An unexpected error occurred. Please try again later."}
+)
+
     return JsonResponse({"deleted": False, "error": "Invalid request"}, status=400)
+
