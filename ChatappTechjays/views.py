@@ -231,6 +231,7 @@ def getvalue(request):
 
     temp_history = request.session.get('temp_chat_history', [])
 
+    # ✅ File Upload Handling (UNCHANGED but now also saved to DB)
     if uploaded_file:
         temp_file_path = ""
         try:
@@ -266,18 +267,14 @@ def getvalue(request):
             else:
                 file_text = f"📄 Uploaded file: {uploaded_file.name} (unsupported type)"
 
-            if file_text.strip():
-                temp_history.append({
-                    "sender": "document",
-                    "message": f"📄 Uploaded: {uploaded_file.name} (content used for context)"
-                })
-                context_text = file_text
-            else:
-                temp_history.append({
-                    "sender": "document",
-                    "message": f"📄 Uploaded: {uploaded_file.name} (no readable text found)"
-                })
-                context_text = f"User uploaded a file named {uploaded_file.name}, but no readable text was found."
+            document_log = f"📄 Uploaded: {uploaded_file.name} (content used for context)"
+            temp_history.append({"sender": "document", "message": document_log})
+
+            # ✅ SAVE DOCUMENT LOG INTO DB
+            Chat.objects.create(user=request.user, session_name=session_name, sender="document",
+                                message=document_log)
+
+            context_text = file_text if file_text.strip() else f"User uploaded a file named {uploaded_file.name}, but no readable text was found."
 
         except IOError as e:
             print(f"[File I/O Error] {e}")
@@ -289,17 +286,31 @@ def getvalue(request):
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
+    # ✅ Save user message to session + DB
     if message:
         temp_history.append({"sender": "user", "message": message})
+        Chat.objects.create(user=request.user, session_name=session_name, sender="user", message=message)
 
     if is_first_user:
         new_title = rename_session(request.user, old_session_name, message)
         request.session['current_session'] = new_title
         session_name = new_title
 
-    prompt = f"{context_text}\n\nUser: {message}" if context_text else message
+    # ✅ Fetch FULL past chat history from DB for memory
+    full_history = Chat.objects.filter(user=request.user, session_name=session_name).order_by("timestamp")
+    history_context = ""
+    for chat_msg in full_history:
+        history_context += f"{chat_msg.sender.capitalize()}: {chat_msg.message}\n"
+
+    # ✅ Combine history + current prompt
+    prompt = f"{history_context}\nUser: {message}"
+
+    # ✅ Get AI response
     bot_reply = get_gemini_response(prompt)
+
+    # ✅ Save bot reply in session + DB
     temp_history.append({"sender": "bot", "message": bot_reply})
+    Chat.objects.create(user=request.user, session_name=session_name, sender="bot", message=bot_reply)
 
     request.session['temp_chat_history'] = temp_history
 
