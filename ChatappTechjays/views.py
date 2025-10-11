@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 from typing import Any, Dict
-
+import re
 import fitz  # PyMuPDF for PDF fallback
 import google.generativeai as genai
 from django.contrib import messages
