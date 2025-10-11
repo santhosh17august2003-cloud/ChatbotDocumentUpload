@@ -231,7 +231,7 @@ def getvalue(request):
 
     temp_history = request.session.get('temp_chat_history', [])
 
-    # ✅ File Upload Handling (UNCHANGED but now also saved to DB)
+    # ✅ Handle File Upload & Save to DB
     if uploaded_file:
         temp_file_path = ""
         try:
@@ -255,14 +255,12 @@ def getvalue(request):
                     loader = UnstructuredPDFLoader(temp_file_path)
                     docs = loader.load()
                     file_text = "\n".join([d.page_content for d in docs])
-                except Exception as e:
-                    print(f"[UnstructuredPDFLoader failed] {e}")
+                except Exception:
                     try:
                         with fitz.open(temp_file_path) as pdf_doc:
                             pages = [p.get_text("text") for p in pdf_doc]
                             file_text = "\n".join(pages)
-                    except Exception as inner:
-                        print(f"[PyMuPDF fallback failed] {inner}")
+                    except Exception:
                         file_text = "⚠️ Unable to extract readable text from PDF."
             else:
                 file_text = f"📄 Uploaded file: {uploaded_file.name} (unsupported type)"
@@ -270,23 +268,18 @@ def getvalue(request):
             document_log = f"📄 Uploaded: {uploaded_file.name} (content used for context)"
             temp_history.append({"sender": "document", "message": document_log})
 
-            # ✅ SAVE DOCUMENT LOG INTO DB
-            Chat.objects.create(user=request.user, session_name=session_name, sender="document",
-                                message=document_log)
+            # ✅ Save document log in DB
+            Chat.objects.create(user=request.user, session_name=session_name, sender="document", message=document_log)
 
-            context_text = file_text if file_text.strip() else f"User uploaded a file named {uploaded_file.name}, but no readable text was found."
+            request.session['document_context'] = file_text
 
-        except IOError as e:
-            print(f"[File I/O Error] {e}")
-            return JsonResponse({"reply": "File I/O error during upload/processing."})
-        except Exception as e:
-            print(f"[General File Processing Error] {e}")
-            return JsonResponse({"reply": "An unexpected error occurred during file processing."})
+        except Exception:
+            return JsonResponse({"reply": "File processing failed!"})
         finally:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
-    # ✅ Save user message to session + DB
+    # ✅ Save user message in DB
     if message:
         temp_history.append({"sender": "user", "message": message})
         Chat.objects.create(user=request.user, session_name=session_name, sender="user", message=message)
@@ -296,19 +289,58 @@ def getvalue(request):
         request.session['current_session'] = new_title
         session_name = new_title
 
-    # ✅ Fetch FULL past chat history from DB for memory
+    # ✅ Fetch FULL conversation history from DB
     full_history = Chat.objects.filter(user=request.user, session_name=session_name).order_by("timestamp")
     history_context = ""
     for chat_msg in full_history:
         history_context += f"{chat_msg.sender.capitalize()}: {chat_msg.message}\n"
 
-    # ✅ Combine history + current prompt
-    prompt = f"{history_context}\nUser: {message}"
+    # ✅ Detect if user wants extraction mode
+    extraction_keywords = ["summarize", "extract", "explain", "overview", "key points", "highlights", "analyze"]
+    is_extraction_mode = any(keyword in message.lower() for keyword in extraction_keywords)
 
-    # ✅ Get AI response
+    document_context = request.session.get('document_context', "")
+
+    # 🎯 STRICT DOCUMENT QA MODE vs SMART EXTRACTION MODE
+    if document_context:
+        if is_extraction_mode:
+            prompt = f"""
+            You are a document analysis assistant. Use the document content to intelligently answer:
+
+            📄 DOCUMENT CONTENT:
+            {document_context}
+
+            🧠 CHAT HISTORY:
+            {history_context}
+
+            ❓ USER REQUEST:
+            {message}
+
+            ✅ Provide a helpful explanation or structured summary.
+            """
+        else:
+            prompt = f"""
+            You are a strict document-based Q&A assistant. 
+            You MUST only answer from the provided document content. DO NOT generate outside answers.
+
+            📄 DOCUMENT CONTENT:
+            {document_context}
+
+            🧠 CHAT HISTORY:
+            {history_context}
+
+            ❓ USER QUESTION:
+            {message}
+
+            🎯 If answer NOT found inside document, strictly reply: ❌ Not found in document
+            """
+    else:
+        prompt = f"{history_context}\nUser: {message}"
+
+    # ✅ Get Bot Reply
     bot_reply = get_gemini_response(prompt)
 
-    # ✅ Save bot reply in session + DB
+    # ✅ Save Bot Reply in DB and Session
     temp_history.append({"sender": "bot", "message": bot_reply})
     Chat.objects.create(user=request.user, session_name=session_name, sender="bot", message=bot_reply)
 
