@@ -38,7 +38,7 @@
         @media (max-width: 480px) { .navbar { flex-direction: column; align-items: flex-start; } .navbar a { margin: 5px 0; font-size: 14px; } .input-area { flex-direction: column; } .input-wrapper input[type="text"], .input-area button { width: 100%; } }
     </style>
 </head>
-<body>
+<body onload="myFunction()">
     <div class="navbar">
         <div class="logo"> Santhosh ChatGPT </div>
         <div>
@@ -80,14 +80,14 @@
             <div class = "input-area">
                 <div class = "input-wrapper">
                     <fieldset id="group1">
-                       <label><input type="radio" value="ChatGPT Like Application" name="group1"> <b>ChatGPT Like Application</b></label>
+                       <label><input type="radio" id="rdoChatgpt" value="ChatGPT Like Application" name="group1" onclick="hide();"> <b>ChatGPT Like Application</b></label>
                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                        <label><input type="radio" value="Document Upload" name="group1">  <b>Document Upload</b></label>
+                        <label><input type="radio" id="rdoDoc" value="Document Upload" name="group1" onclick="show();">  <b>Document Upload</b></label>
                     </fieldset>
                 </div>
             </div>
             <div class="input-area">
-                <div class="input-wrapper">
+                <div class="input-wrapper" id="divDoc">
                     <label for="fileInput" id="uploadLabel">📤 <b>Click this emoji to upload the file</b></label>
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                   
@@ -102,6 +102,16 @@
     </div>
 
 <script>
+     function myFunction(){
+        document.getElementById('rdoChatgpt').click();
+  document.getElementById('divDoc').style.display ='none';
+}
+    function hide(){
+  document.getElementById('divDoc').style.display ='none';
+}
+function show(){
+  document.getElementById('divDoc').style.display = 'block';
+}
 const chatBox = document.getElementById("chatBox");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -115,8 +125,8 @@ let isFirstMessage = "{{ session_name }}".startsWith("Chat "); // Helper flag
 // ---------- File Upload ----------
 fileInput.addEventListener("change", (e) => {
     uploadedFile = e.target.files[0];
-    if (uploadedFile) alert("File ready: " + uploadedFile.name);
-});
+    if (uploadedFile) alert("Successfully Uploaded : " +"\""+ uploadedFile.name +"\""+" You can ask the questions from the document");
+})
 
 // ---------- Send Message ----------
 sendBtn.addEventListener("click", sendMessage);
