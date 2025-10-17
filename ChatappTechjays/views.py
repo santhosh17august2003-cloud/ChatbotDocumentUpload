@@ -311,7 +311,7 @@ def getvalue(request):
         document_context = ""  # Ignore document context fully
 
     elif mode == "Document Upload" and not request.session.get('document_context'):
-        return JsonResponse({"reply": "❌ Please upload a document first before asking.If you need to know outside of the document please click ChatGPT Like Application", "session_name": session_name})
+        return JsonResponse({"reply": "❌ Please upload a document first before asking.If you need to know outside of the document please 'click ChatGPT Like Application'", "session_name": session_name})
 
     # ✅ Detect extraction keywords (unchanged)
     extraction_keywords = ["summarize", "extract", "explain", "overview", "key points", "highlights", "analyze"]
