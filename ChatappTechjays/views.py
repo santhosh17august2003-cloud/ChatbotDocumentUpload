@@ -116,7 +116,6 @@ def signin(request):
             user = authenticate(request, username=email, password=password)
             if user:
                 login(request, user)
-                #messages.success(request, "Sign In successful!")
                 return redirect('chat')
             else:
                 messages.error(request, "Invalid email or password!")
