@@ -102,12 +102,18 @@
     </div>
 
 <script>
+    const fileInput = document.getElementById("fileInput");
+    let uploadedFile = null;
      function myFunction(){
         document.getElementById('rdoChatgpt').click();
   document.getElementById('divDoc').style.display ='none';
+
+  
 }
     function hide(){
   document.getElementById('divDoc').style.display ='none';
+  uploadedFile = null;
+  fileInput = "";
 }
 function show(){
   document.getElementById('divDoc').style.display = 'block';
@@ -115,10 +121,10 @@ function show(){
 const chatBox = document.getElementById("chatBox");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
-const fileInput = document.getElementById("fileInput");
+
 const sessionList = document.getElementById("sessionList");
 
-let uploadedFile = null;
+
 let currentSession = "{{ session_name }}";
 let isFirstMessage = "{{ session_name }}".startsWith("Chat "); // Helper flag
 
@@ -147,6 +153,7 @@ async function sendMessage() {
     const formData = new FormData();
     formData.append("message", message);
     if (uploadedFile) formData.append("doc_file", uploadedFile);
+    formData.append("mode", document.querySelector('input[name="group1"]:checked').value);
 
     try {
         const res = await fetch("{% url 'getvalue' %}", { // Using the named URL

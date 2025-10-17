@@ -86,21 +86,28 @@ def signup(request):
     if request.method == "POST":
         form = SignupForm(request.POST)
         if form.is_valid():
-            full_name = form.cleaned_data['full_name']
+            full_name = form.cleaned_data.get('full_name', '')
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
             username = email
             if User.objects.filter(username=username).exists():
                 messages.error(request, "Email already registered!")
-                return redirect('signup')
-            User.objects.create_user(username=username, email=email, password=password, first_name=full_name)
-            messages.success(request, "Account created successfully! Please Sign In.")
-            return redirect('signin')
+                return redirect('signup')  # Redirect clears form and previous errors
+            User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=full_name
+            )
+            return redirect('signin')  # Redirect clears form
     else:
-        form = SignupForm()
+        form = SignupForm()  # Fresh empty form on GET
+
     return render(request, 'Chatapp/signup.html', {'form': form})
 
+
 def signin(request):
+
     if request.method == "POST":
         form = SignInForm(request.POST)
         if form.is_valid():
@@ -109,13 +116,15 @@ def signin(request):
             user = authenticate(request, username=email, password=password)
             if user:
                 login(request, user)
+                #messages.success(request, "Sign In successful!")
                 return redirect('chat')
-            messages.error(request, "Invalid email or password!")
-            return redirect('signin')
+            else:
+                messages.error(request, "Invalid email or password!")
+                return redirect('signin')
     else:
         form = SignInForm()
     return render(request, 'Chatapp/signin.html', {'form': form})
-
+    
 def signout(request):
     logout(request)
     messages.success(request, "Logged out successfully!")
@@ -155,7 +164,7 @@ def chat(request):
         # Step 3: Update session data
         request.session['current_session'] = new_session_name
         request.session['temp_chat_history'] = []
-
+        request.session['document_context'] = "" 
     # Load current chat and history sessions
     session_name = request.session.get('current_session')
     if not session_name:
@@ -231,7 +240,7 @@ def getvalue(request):
 
     temp_history = request.session.get('temp_chat_history', [])
 
-    # ✅ Handle File Upload & Save to DB
+    # ✅ Handle File Upload & Save to DB (unchanged)
     if uploaded_file:
         temp_file_path = ""
         try:
@@ -268,9 +277,7 @@ def getvalue(request):
             document_log = f"📄 Uploaded: {uploaded_file.name} (content used for context)"
             temp_history.append({"sender": "document", "message": document_log})
 
-            # ✅ Save document log in DB
             Chat.objects.create(user=request.user, session_name=session_name, sender="document", message=document_log)
-
             request.session['document_context'] = file_text
 
         except Exception:
@@ -279,7 +286,7 @@ def getvalue(request):
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
-    # ✅ Save user message in DB
+    # ✅ Save user message (unchanged)
     if message:
         temp_history.append({"sender": "user", "message": message})
         Chat.objects.create(user=request.user, session_name=session_name, sender="user", message=message)
@@ -289,19 +296,29 @@ def getvalue(request):
         request.session['current_session'] = new_title
         session_name = new_title
 
-    # ✅ Fetch FULL conversation history from DB
+    # ✅ Fetch FULL chat history (unchanged)
     full_history = Chat.objects.filter(user=request.user, session_name=session_name).order_by("timestamp")
     history_context = ""
     for chat_msg in full_history:
         history_context += f"{chat_msg.sender.capitalize()}: {chat_msg.message}\n"
 
-    # ✅ Detect if user wants extraction mode
-    extraction_keywords = ["summarize", "extract", "explain", "overview", "key points", "highlights", "analyze"]
-    is_extraction_mode = any(keyword in message.lower() for keyword in extraction_keywords)
+    # ✅ Extract mode from frontend (NEW ADDITION)
+    mode = request.POST.get("mode", "")
 
     document_context = request.session.get('document_context', "")
 
-    # 🎯 STRICT DOCUMENT QA MODE vs SMART EXTRACTION MODE
+    # ✅ Mode Logic Injection (NEW)
+    if mode == "ChatGPT Like Application":
+        document_context = ""  # Ignore document context fully
+
+    elif mode == "Document Upload" and not request.session.get('document_context'):
+        return JsonResponse({"reply": "❌ Please upload a document first before asking.If you need to know outside of the document please click ChatGPT Like Application", "session_name": session_name})
+
+    # ✅ Detect extraction keywords (unchanged)
+    extraction_keywords = ["summarize", "extract", "explain", "overview", "key points", "highlights", "analyze"]
+    is_extraction_mode = any(keyword in message.lower() for keyword in extraction_keywords)
+
+    # ✅ Prompt generation (unchanged except document_context check)
     if document_context:
         if is_extraction_mode:
             prompt = f"""
@@ -337,10 +354,9 @@ def getvalue(request):
     else:
         prompt = f"{history_context}\nUser: {message}"
 
-    # ✅ Get Bot Reply
+    # ✅ Get Bot Reply (unchanged)
     bot_reply = get_gemini_response(prompt)
 
-    # ✅ Save Bot Reply in DB and Session
     temp_history.append({"sender": "bot", "message": bot_reply})
     Chat.objects.create(user=request.user, session_name=session_name, sender="bot", message=bot_reply)
 
