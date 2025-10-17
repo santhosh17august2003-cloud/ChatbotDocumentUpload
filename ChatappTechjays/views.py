@@ -301,15 +301,13 @@ def getvalue(request):
     for chat_msg in full_history:
         history_context += f"{chat_msg.sender.capitalize()}: {chat_msg.message}\n"
 
-    # ✅ Extract mode from frontend (NEW ADDITION)
     mode = request.POST.get("mode", "")
 
-    document_context = request.session.get('document_context', "")
+    doc_context = request.session.get('document_context', "")
 
     if mode == "ChatGPT Like Application":
-        document_context = ""  # Ignore document context fully
-
-    elif mode == "Document Upload" and not request.session.get('document_context'):
+        doc_context = ""  # completely ignore document
+    elif mode == "Document Upload" and not doc_context:
         return JsonResponse({
         "reply": "❌ Please upload a document first before asking. If you need to know outside of the document please 'click ChatGPT Like Application'", 
         "session_name": session_name
@@ -319,13 +317,13 @@ def getvalue(request):
     is_extraction_mode = any(keyword in message.lower() for keyword in extraction_keywords)
 
     # ✅ Prompt generation (unchanged except document_context check)
-    if document_context:
+    if doc_context:
         if is_extraction_mode:
             prompt = f"""
             You are a document analysis assistant. Use the document content to intelligently answer:
 
             📄 DOCUMENT CONTENT:
-            {document_context}
+            {doc_context}
 
             🧠 CHAT HISTORY:
             {history_context}
@@ -341,7 +339,7 @@ def getvalue(request):
             You MUST only answer from the provided document content. DO NOT generate outside answers.
 
             📄 DOCUMENT CONTENT:
-            {document_context}
+            {doc_context}
 
             🧠 CHAT HISTORY:
             {history_context}
